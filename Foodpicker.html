@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>等会儿吃啥？</title>
+    <!-- 引入 FontAwesome 图标 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #FFFBE6;
+            --main-yellow: #FFD700;
+            --accent-orange: #FF4500;
+            --border-black: #000000;
+            --text-gray: #666666;
+            --card-shadow: 4px 4px 0px rgba(0,0,0,1);
+            --error-bg: #FFF0F0;
+            --error-border: #FFCCC7;
+            --error-text: #FF4D4F;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--border-black);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center; 
+        }
+
+        /* 顶部 Logo */
+        .header {
+            text-align: center;
+            padding: 40px 0 30px;
+            width: 100%;
+        }
+        .header h1 {
+            font-size: 3rem;
+            color: var(--accent-orange);
+            text-shadow: 2px 2px 0 #000;
+            font-style: italic;
+            letter-spacing: 2px;
+        }
+        .header p {
+            font-size: 1rem;
+            color: var(--text-gray);
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        /* 布局容器 */
+        .container-width {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            padding-bottom: 120px; 
+        }
+
+        /* 搜索栏区域 */
+        .search-container {
+            display: flex;
+            gap: 15px;
+            position: relative;
+            margin-bottom: 20px;
+            align-items: center;
+            z-index: 100;
+            justify-content: center;
+        }
+
+        .location-box {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            background: #fff;
+            border: 3px solid var(--border-black);
+            border-radius: 15px;
+            padding: 12px 20px;
+            box-shadow: var(--card-shadow);
+            height: 60px;
+            position: relative;
+        }
+
+        .icon-pin {
+            margin-right: 15px;
+            font-size: 1.4rem;
+            color: var(--accent-orange);
+        }
+
+        #address-input {
+            border: none;
+            outline: none;
+            width: 100%;
+            font-size: 1.1rem;
+            font-weight: 900;
+            color: #000;
+        }
+        
+        #address-input::placeholder {
+            color: #999;
+            font-weight: normal;
+        }
+
+        /* 距离下拉菜单 */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+            width: 120px;
+            height: 60px;
+            flex-shrink: 0;
+        }
+
+        .drop-btn {
+            width: 100%;
+            height: 100%;
+            background: var(--main-yellow);
+            border: 3px solid var(--border-black);
+            border-radius: 15px;
+            font-weight: 900;
+            font-size: 1.1rem;
+            cursor: pointer;
+            box-shadow: var(--card-shadow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            top: 70px;
+            left: 0;
+            width: 100%;
+            background-color: var(--main-yellow);
+            border: 3px solid var(--border-black);
+            border-radius: 12px;
+            z-index: 1000;
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
+        }
+
+        .dropdown-content div {
+            padding: 12px 16px;
+            cursor: pointer;
+            font-weight: bold;
+            text-align: center;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .dropdown-content div:last-child { border-bottom: none; }
+        .dropdown-content div:hover { background-color: #e6c200; }
+        .dropdown-content div.selected { background-color: #666; color: #fff; }
+
+        /* 搜索按钮 */
+        .search-btn {
+            background: #00E096;
+            border: 3px solid var(--border-black);
+            border-radius: 15px;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: var(--card-shadow);
+            font-size: 1.2rem;
+            transition: transform 0.1s;
+            flex-shrink: 0;
+        }
+        .search-btn:active, .drop-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        /* 联想结果面板 */
+        #search-result-panel {
+            position: absolute;
+            top: 65px;
+            left: 0;
+            width: 100%;
+            background: #fff;
+            border: 3px solid var(--border-black);
+            border-radius: 12px;
+            z-index: 999;
+            display: none;
+            max-height: 400px;
+            overflow-y: auto;
+            box-shadow: 4px 4px 0 rgba(0,0,0,0.2);
+        }
+
+        #search-result-panel::-webkit-scrollbar { width: 10px; }
+        #search-result-panel::-webkit-scrollbar-track { background: #fff; border-radius: 0 10px 10px 0; }
+        #search-result-panel::-webkit-scrollbar-thumb { background: var(--main-yellow); border: 2px solid var(--border-black); border-radius: 10px; }
+
+        .suggestion-item {
+            padding: 15px;
+            border-bottom: 2px solid #f0f0f0;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            transition: background 0.1s;
+        }
+        .suggestion-item:last-child { border-bottom: none; }
+        .suggestion-item:hover { background: #FFFBE6; }
+
+        .suggestion-name {
+            font-size: 1.1rem;
+            font-weight: 900;
+            color: #000;
+            margin-bottom: 5px;
+        }
+        .suggestion-addr {
+            font-size: 0.85rem;
+            color: #888;
+            font-weight: normal;
+        }
+
+        /* 筛选 Tab & 信息栏 */
+        .filter-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .tabs-container {
+            display: flex;
+            gap: 15px;
+        }
+
+        .tab-pill {
+            padding: 8px 30px;
+            border: 2px solid var(--border-black);
+            border-radius: 30px;
+            background: #fff;
+            cursor: pointer;
+            font-weight: 900;
+            font-size: 1rem;
+            color: #ccc;
+            border-color: #ddd;
+        }
+
+        .tab-pill.active {
+            background: var(--main-yellow);
+            color: #000;
+            border-color: #000;
+            box-shadow: 2px 2px 0 rgba(0,0,0,1);
+        }
+
+        .info-bar {
+            font-size: 0.9rem;
+            color: #999;
+            font-weight: bold;
+        }
+
+        /* 餐厅列表 Grid */
+        .restaurant-list {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            width: 100%;
+        }
+
+        @media (max-width: 1024px) { .restaurant-list { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 768px) { 
+            .restaurant-list { grid-template-columns: 1fr; } 
+            .header h1 { font-size: 2rem; }
+            .search-container { flex-wrap: wrap; }
+            .dropdown { width: 100px; }
+            .location-box { min-width: 100%; }
+        }
+
+        /* 卡片样式 */
+        .card {
+            background: #fff;
+            border: 3px solid var(--border-black);
+            border-radius: 15px;
+            padding: 15px 20px;
+            box-shadow: var(--card-shadow);
+            position: relative;
+            transition: all 0.1s; 
+            height: 120px; 
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .card:hover { transform: translateY(-2px); }
+
+        .card.highlight {
+            background-color: var(--main-yellow);
+            border-color: var(--accent-orange);
+            transform: scale(1.02);
+            box-shadow: 6px 6px 0 var(--border-black);
+            z-index: 10;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            width: 100%;
+        }
+
+        .res-name {
+            font-weight: 900;
+            font-size: 1.1rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 85%;
+        }
+
+        .distance-badge {
+            border: 2px solid var(--border-black);
+            border-radius: 6px;
+            padding: 2px 6px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            background: #fff;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .rating {
+            color: #FFA500;
+            font-weight: 900;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* 底部大按钮 */
+        .bottom-action {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 1200px;
+            z-index: 90;
+        }
+
+        #random-btn {
+            width: 100%;
+            height: 70px;
+            background: var(--accent-orange);
+            color: #fff;
+            font-size: 1.5rem;
+            font-weight: 900;
+            border: 3px solid var(--border-black);
+            border-radius: 15px;
+            cursor: pointer;
+            box-shadow: 4px 4px 0 #000;
+            transition: all 0.2s;
+            letter-spacing: 2px;
+        }
+        
+        #random-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        /* 弹窗样式 */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            backdrop-filter: blur(5px);
+        }
+
+        .result-card {
+            background: #fff;
+            width: 100%;
+            max-width: 500px;
+            border-radius: 25px;
+            overflow: hidden;
+            border: 5px solid var(--main-yellow);
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .result-img-area {
+            height: 250px;
+            position: relative;
+            background-size: cover;
+            background-position: center;
+            background-color: #eee; 
+            transition: all 0.3s;
+        }
+
+        /* 无图样式 */
+        .result-img-area.no-photo {
+            background: linear-gradient(135deg, #FFD000 0%, #FF9000 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .result-img-area.no-photo::after {
+            content: '\f2e7'; /* FontAwesome 的餐具图标代码 */
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            font-size: 80px;
+            color: rgba(255,255,255,0.3);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -65%);
+        }
+
+        .result-name {
+            font-size: 2rem;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            line-height: 1.2;
+            z-index: 2;
+        }
+
+        .lucky-tag {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: var(--main-yellow);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            border: 2px solid #000;
+            box-shadow: 2px 2px 0 #000;
+            font-size: 0.9rem;
+            z-index: 2;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 40px;
+            height: 40px;
+            background: rgba(0,0,0,0.8);
+            color: #fff;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 38px;
+            font-size: 24px;
+            cursor: pointer;
+            border: 2px solid #fff;
+            z-index: 3;
+        }
+
+        .result-content {
+            padding: 25px;
+            background: #fff;
+        }
+
+        .result-meta {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            color: #555;
+        }
+        
+        .meta-tag {
+            background: #f0f0f0;
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .nav-btn {
+            flex: 1; 
+            background: #000;
+            color: #fff;
+            padding: 15px;
+            border-radius: 15px;
+            font-weight: 900;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            text-align: center;
+            box-shadow: 4px 4px 0 rgba(0,0,0,0.3);
+            transition: transform 0.1s;
+        }
+        
+        .nav-btn:active {
+             transform: translate(2px, 2px);
+             box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+        }
+
+        .retry-btn {
+            width: 70px;
+            background: var(--main-yellow);
+            border: 3px solid #000;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 4px 4px 0 rgba(0,0,0,0.3);
+        }
+        
+        .retry-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+        }
+
+        /* 错误/空状态 */
+        .empty-state {
+            display: none;
+            border: 3px dashed #ccc;
+            border-radius: 15px;
+            padding: 60px;
+            text-align: center;
+            color: #999;
+            margin-top: 40px;
+            background: rgba(255,255,255,0.5);
+            width: 100%; 
+        }
+
+        /* 错误提示条样式 */
+        .error-banner {
+            display: none; 
+            background-color: var(--error-bg);
+            border: 1px solid var(--error-border);
+            color: var(--error-text);
+            padding: 8px 15px;
+            border-radius: 8px;
+            margin-top: 5px; 
+            margin-bottom: 25px; 
+            font-weight: bold;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            box-shadow: 2px 2px 0 rgba(255, 77, 79, 0.1);
+            transition: opacity 1s ease-out;
+            opacity: 1;
+            width: 100%; 
+        }
+        
+        .error-banner.fade-out {
+            opacity: 0;
+        }
+
+        .loading-tip {
+            padding: 15px;
+            text-align: center;
+            color: #999;
+            font-weight: bold;
+        }
+
+    </style>
+
+    <!-- 高德地图配置 -->
+    <script type="text/javascript">
+        window._AMapSecurityConfig = {
+            securityJsCode: 'b23fb766da28e8e2eb4b0b3859a427db', 
+        }
+    </script>
+    <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=5ceaa2094e649eabdd4e9067c0e058be&plugin=AMap.PlaceSearch,AMap.AutoComplete,AMap.Geolocation"></script>
+</head>
+<body>
+
+    <div class="header">
+        <h1>等会儿吃啥?</h1>
+        <p>别纠结了，让命运决定！✨</p>
+    </div>
+
+    <div class="container-width">
+        <!-- 搜索栏 -->
+        <div class="search-container">
+            <div class="location-box">
+                <i class="fas fa-map-marker-alt icon-pin"></i>
+                <input type="text" id="address-input" placeholder="您在哪儿呢？" autocomplete="off">
+                <div id="search-result-panel"></div>
+            </div>
+            
+            <div class="dropdown" id="distance-dropdown">
+                <div class="drop-btn" onclick="toggleDropdown()">
+                    <span id="current-distance">500m</span> 
+                    <i class="fas fa-caret-down"></i>
+                </div>
+                <div class="dropdown-content">
+                    <div onclick="selectDistance(100)">100m</div>
+                    <div onclick="selectDistance(200)">200m</div>
+                    <div class="selected" onclick="selectDistance(500)">500m</div>
+                    <div onclick="selectDistance(1000)">1km</div>
+                    <div onclick="selectDistance(2000)">2km</div>
+                    <div onclick="selectDistance(3000)">3km</div>
+                </div>
+            </div>
+
+            <div class="search-btn" id="do-search"><i class="fas fa-search"></i></div>
+        </div>
+
+        <!-- 筛选 Tab & 统计信息 -->
+        <div class="filter-row">
+            <div class="tabs-container">
+                <div class="tab-pill active" onclick="filterType('餐饮', this)">三餐</div>
+                <div class="tab-pill" onclick="filterType('甜品', this)">甜点</div>
+                <div class="tab-pill" onclick="filterType('饮品', this)">饮品</div>
+            </div>
+            <div class="info-bar" id="info-bar">正在加载...</div>
+        </div>
+
+        <!-- 错误提示条 -->
+        <div id="error-banner" class="error-banner">
+            <i class="fas fa-exclamation-triangle"></i> <span id="error-text">你在哪儿呢？先输入地址吧！</span>
+        </div>
+
+        <!-- 列表展示 -->
+        <div class="restaurant-list" id="restaurant-list"></div>
+
+        <!-- 空状态 -->
+        <div class="empty-state" id="empty-state">
+            <i class="fas fa-utensils" style="font-size: 50px; margin-bottom: 20px;"></i>
+            <p id="empty-text">输入地址，看看周围有啥好吃的</p>
+        </div>
+    </div>
+
+    <!-- 底部按钮 -->
+    <div class="bottom-action">
+        <button id="random-btn" onclick="startRandom()">随便吃一个！</button>
+    </div>
+
+    <!-- 结果弹窗 -->
+    <div class="modal-overlay" id="result-modal">
+        <div class="result-card">
+            <div class="result-img-area" id="modal-img">
+                <div class="close-btn" onclick="closeModal()">×</div>
+                <div class="lucky-tag" id="modal-tag">命中注定</div>
+                <div class="result-name" id="modal-name">餐厅名称</div>
+            </div>
+            <div class="result-content">
+                <div class="result-meta">
+                     <span class="meta-tag" id="modal-type">餐饮</span>
+                </div>
+
+                <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                    <i class="fas fa-map-marker-alt" style="color:var(--accent-orange); margin-right:12px; font-size: 1.2rem;"></i>
+                    <div style="text-align: left;">
+                        <div style="color:#999; font-size:0.8rem; font-weight: bold;">餐厅地址</div>
+                        <div style="font-weight: 900; font-size: 1.1rem; color:#333; margin-top:4px;" id="modal-address">详细地址</div>
+                    </div>
+                </div>
+                
+                <div class="result-actions">
+                    <a href="#" id="nav-link" target="_blank" class="nav-btn">
+                        <i class="fas fa-location-arrow" style="margin-right:10px;"></i> 导航去吃
+                    </a>
+                    <div class="retry-btn" onclick="retryRandom()">
+                        <i class="fas fa-sync-alt"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局状态
+        let mapObj = null;
+        let currentCity = ''; 
+        let currentPoint = null; 
+        let currentList = [];
+        let currentType = '餐饮';
+        let currentRadius = 500; 
+        let errorTimer = null; 
+        let debounceTimer = null; 
+        
+        const LOADING_TEXTS = ["正在闻味儿...", "正在咨询食神...", "正在偷看谁家排队...", "命运的齿轮转动中...", "正在挑选命中注定..."];
+
+        const TYPE_MAPPING = {
+            '餐饮': '中餐厅|外国餐厅|快餐厅', 
+            '甜品': '甜品店|蛋糕房|面包房', 
+            '饮品': '咖啡厅|茶艺馆|冷饮店|酒吧'
+        };
+
+        window.onload = function() {
+            initMap();
+        };
+
+        function saveCache() {
+            if(currentPoint && document.getElementById('address-input').value) {
+                const cacheData = {
+                    point: currentPoint,
+                    address: document.getElementById('address-input').value,
+                    city: currentCity
+                };
+                localStorage.setItem('whatToEat_cache', JSON.stringify(cacheData));
+            }
+        }
+
+        function loadCacheFallback() {
+            const cache = localStorage.getItem('whatToEat_cache');
+            if(cache) {
+                try {
+                    const data = JSON.parse(cache);
+                    currentPoint = data.point;
+                    currentCity = data.city;
+                    document.getElementById('address-input').value = data.address;
+                    document.getElementById('address-input').placeholder = "您在哪儿呢？";
+                    searchNearby(currentPoint);
+                } catch(e) { console.error('Cache error', e); }
+            } else {
+                 onLocateError();
+            }
+        }
+
+        function initMap() {
+            AMap.plugin('AMap.Geolocation', function() {
+                var geolocation = new AMap.Geolocation({
+                    enableHighAccuracy: true,
+                    timeout: 8000,          
+                    zoomToAccuracy: true,   
+                    needAddress: true,
+                });
+
+                document.getElementById('address-input').placeholder = "正在获取您的位置...";
+                document.getElementById('info-bar').innerText = "定位中...";
+
+                geolocation.getCurrentPosition(function(status, result) {
+                    if (status == 'complete') {
+                        onLocateSuccess(result);
+                    } else {
+                        console.log('定位失败，尝试缓存...');
+                        loadCacheFallback();
+                    }
+                });
+            });
+
+            var autoComplete = new AMap.AutoComplete({ citylimit: false }); 
+            var placeSearchForTips = new AMap.PlaceSearch({ pageSize: 10, citylimit: false }); 
+
+            const inputEl = document.getElementById('address-input');
+            const panelEl = document.getElementById('search-result-panel');
+
+            inputEl.oninput = function(e) {
+                currentPoint = null; 
+                localStorage.removeItem('whatToEat_cache');
+                
+                const keywords = e.target.value;
+
+                if (!keywords) {
+                    panelEl.style.display = 'none';
+                    if (debounceTimer) clearTimeout(debounceTimer);
+                    return;
+                }
+
+                panelEl.style.display = 'block';
+                const randomLoading = LOADING_TEXTS[Math.floor(Math.random() * LOADING_TEXTS.length)];
+                panelEl.innerHTML = `<div class="loading-tip">${randomLoading}</div>`;
+
+                if (debounceTimer) clearTimeout(debounceTimer);
+
+                debounceTimer = setTimeout(() => {
+                    autoComplete.search(keywords, function(status, result) {
+                        if (status === 'complete' && result.tips && result.tips.length > 0) {
+                            renderSearchSuggestions(result.tips);
+                        } else {
+                            placeSearchForTips.search(keywords, function(status2, result2) {
+                                if (status2 === 'complete' && result2.poiList && result2.poiList.pois.length > 0) {
+                                    renderSearchSuggestions(result2.poiList.pois);
+                                } else {
+                                    panelEl.innerHTML = '<div class="loading-tip">未找到相关地址</div>';
+                                }
+                            });
+                        }
+                    });
+                }, 300);
+            };
+
+            document.addEventListener('click', function(e) {
+                if (!inputEl.contains(e.target) && !panelEl.contains(e.target)) {
+                    panelEl.style.display = 'none';
+                }
+            });
+
+            document.getElementById('do-search').onclick = function() {
+                if(!currentPoint) {
+                    if(inputEl.value.trim() === "") {
+                        showError("你在哪儿呢？先输入地址吧！");
+                    } else {
+                        showError("请从下拉列表中选择一个准确的地址");
+                    }
+                } else {
+                    hideErrorImmediately();
+                    searchNearby(currentPoint);
+                }
+            };
+        }
+
+        function showError(msg) {
+            const banner = document.getElementById('error-banner');
+            const textSpan = document.getElementById('error-text');
+            if(errorTimer) clearTimeout(errorTimer);
+            textSpan.innerText = msg;
+            banner.style.display = 'flex';
+            banner.style.opacity = '1';
+            banner.classList.remove('fade-out'); 
+            errorTimer = setTimeout(() => {
+                banner.classList.add('fade-out');
+                setTimeout(() => { if(banner.classList.contains('fade-out')){ banner.style.display = 'none'; } }, 1000); 
+            }, 5000);
+        }
+
+        function hideErrorImmediately() {
+            const banner = document.getElementById('error-banner');
+            if(errorTimer) clearTimeout(errorTimer);
+            banner.style.display = 'none';
+            banner.style.opacity = '1';
+            banner.classList.remove('fade-out');
+        }
+
+        function renderSearchSuggestions(tips) {
+            const panel = document.getElementById('search-result-panel');
+            panel.innerHTML = '';
+            const validTips = tips.filter(tip => tip.location);
+
+            if (validTips.length === 0) {
+                panel.innerHTML = '<div class="loading-tip">未找到相关地址</div>';
+                return;
+            }
+
+            validTips.forEach(tip => {
+                const item = document.createElement('div');
+                item.className = 'suggestion-item';
+                
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'suggestion-name';
+                nameDiv.innerText = tip.name;
+
+                const addrDiv = document.createElement('div');
+                addrDiv.className = 'suggestion-addr';
+                let addressText = '';
+                if(tip.address && typeof tip.address === 'string') {
+                    addressText = tip.address;
+                } else if (tip.district) {
+                    addressText = tip.district;
+                } else if (tip.pname) {
+                    addressText = `${tip.pname}${tip.cityname}${tip.adname}`;
+                }
+                addrDiv.innerText = addressText || '暂无详细地址';
+
+                item.appendChild(nameDiv);
+                item.appendChild(addrDiv);
+
+                item.onclick = function() {
+                    currentPoint = tip.location;
+                    if(tip.adcode) currentCity = tip.adcode;
+                    document.getElementById('address-input').value = tip.name;
+                    panel.style.display = 'none';
+                    hideErrorImmediately();
+                    saveCache(); 
+                    searchNearby(currentPoint);
+                };
+
+                panel.appendChild(item);
+            });
+            panel.style.display = 'block';
+        }
+
+        function onLocateSuccess(data) {
+            currentPoint = data.position;
+            currentCity = data.addressComponent.city;
+            document.getElementById('address-input').value = data.formattedAddress;
+            document.getElementById('address-input').placeholder = "您在哪儿呢？";
+            hideErrorImmediately();
+            saveCache();
+            searchNearby(currentPoint);
+        }
+
+        function onLocateError(data) {
+            document.getElementById('address-input').value = "";
+            document.getElementById('address-input').placeholder = "您在哪儿呢？"; 
+            document.getElementById('empty-text').innerText = "定位失败，请输入地址告诉我们您在哪儿";
+            document.getElementById('empty-state').style.display = 'block';
+            document.getElementById('info-bar').innerText = "定位失败";
+        }
+
+        function fetch200Restaurants(placeSearch, point, radius) {
+            return new Promise((resolve) => {
+                let allPois = [];
+                let currentPage = 1;
+                function fetchPage() {
+                    placeSearch.setPageIndex(currentPage);
+                    placeSearch.searchNearBy('', point, radius, function(status, result) {
+                        if (status === 'complete' && result.info === 'OK') {
+                            allPois = allPois.concat(result.poiList.pois);
+                            if (result.poiList.pois.length === 50 && currentPage < 4) {
+                                currentPage++;
+                                fetchPage(); 
+                            } else {
+                                resolve(allPois); 
+                            }
+                        } else {
+                            resolve(allPois); 
+                        }
+                    });
+                }
+                fetchPage();
+            });
+        }
+
+        function searchNearby(point) {
+            if(!point) return;
+            document.getElementById('restaurant-list').innerHTML = '';
+            document.getElementById('empty-state').style.display = 'none';
+            document.getElementById('info-bar').innerText = '正在搜索美味...';
+            hideErrorImmediately();
+
+            const searchType = TYPE_MAPPING[currentType] || '餐饮服务';
+
+            AMap.plugin(["AMap.PlaceSearch"], function() {
+                var placeSearch = new AMap.PlaceSearch({ 
+                    type: searchType, 
+                    pageSize: 50, 
+                    city: currentCity, 
+                    citylimit: false,
+                    extensions: 'all' 
+                });
+
+                fetch200Restaurants(placeSearch, point, currentRadius).then(pois => {
+                    if (pois.length > 0) {
+                        currentList = pois; 
+                        renderList(currentList);
+                    } else {
+                        currentList = [];
+                        document.getElementById('info-bar').innerText = '附近没有找到合适的店';
+                        document.getElementById('empty-state').style.display = 'block';
+                        document.getElementById('empty-text').innerText = `范围 ${currentRadius}m 内没有找到${currentType}`;
+                    }
+                });
+            });
+        }
+
+        function renderList(list) {
+            const container = document.getElementById('restaurant-list');
+            const infoBar = document.getElementById('info-bar');
+            
+            infoBar.innerText = `已找到周边 ${list.length} 家 ${currentType}`;
+            infoBar.style.textAlign = 'right';
+            container.innerHTML = '';
+
+            if(list.length === 0) {
+                document.getElementById('empty-state').style.display = 'block';
+                return;
+            }
+
+            list.forEach(item => {
+                const rating = item.biz_ext && item.biz_ext.rating && item.biz_ext.rating.length > 0 
+                               ? item.biz_ext.rating 
+                               : (Math.random()*1.0 + 3.8).toFixed(1);
+                
+                // 修复逻辑：如果有距离则使用，如果没有距离但有坐标，则手动计算
+                let displayDistance = '';
+                if (item.distance) {
+                    displayDistance = `${item.distance}m`;
+                } else if (currentPoint && item.location) {
+                    // 手动补算距离
+                    const manualDist = Math.round(currentPoint.distance(item.location));
+                    displayDistance = `${manualDist}m`;
+                    // 同时把这个补算的值回写给 item，方便弹窗使用
+                    item.distance = manualDist;
+                } else {
+                    displayDistance = '未知';
+                }
+
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="card-header">
+                        <div class="res-name" title="${item.name}">${item.name}</div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                        <div class="rating"><i class="fas fa-star"></i> ${rating}</div>
+                        <div style="display:flex; align-items:center;">
+                            <div class="distance-badge">${displayDistance}</div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function filterType(type, element) {
+            document.querySelectorAll('.tab-pill').forEach(el => {
+                el.classList.remove('active');
+                el.style.color = '#ccc';
+            });
+            element.classList.add('active');
+            currentType = type;
+            if (currentPoint) searchNearby(currentPoint);
+        }
+
+        function toggleDropdown() {
+            const content = document.querySelector('.dropdown-content');
+            content.style.display = content.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function selectDistance(dist) {
+            currentRadius = dist;
+            let text = dist >= 1000 ? (dist/1000 + 'km') : (dist + 'm');
+            document.getElementById('current-distance').innerText = text;
+            document.querySelectorAll('.dropdown-content div').forEach(div => div.classList.remove('selected'));
+            event.target.classList.add('selected');
+            document.querySelector('.dropdown-content').style.display = 'none';
+            if(currentPoint) searchNearby(currentPoint);
+        }
+
+        window.onclick = function(event) {
+            if (!event.target.matches('.drop-btn') && !event.target.matches('.drop-btn *')) {
+                document.querySelector('.dropdown-content').style.display = 'none';
+            }
+        }
+
+        function startRandom() {
+            if (currentList.length === 0) {
+                if(!currentPoint) {
+                    if(document.getElementById('address-input').value.trim() === "") {
+                        showError("你在哪儿呢？先输入地址吧！");
+                    } else {
+                        showError("请从下拉列表中选择一个准确的地址");
+                    }
+                } else {
+                    alert('请先等待列表加载');
+                }
+                return;
+            }
+            const btn = document.getElementById('random-btn');
+            const cards = document.querySelectorAll('.card'); 
+
+            btn.disabled = true;
+            btn.innerText = '正在挑选...';
+            btn.style.backgroundColor = '#ccc';
+            btn.style.borderColor = '#999';
+
+            let count = 0;
+            const maxCount = 20; 
+            let lastIndex = -1;
+
+            const interval = setInterval(() => {
+                if(lastIndex !== -1) {
+                    cards[lastIndex].classList.remove('highlight');
+                }
+                const randomIndex = Math.floor(Math.random() * currentList.length);
+                cards[randomIndex].classList.add('highlight');
+                
+                lastIndex = randomIndex;
+                count++;
+
+                if (count >= maxCount) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        showFinalResult(currentList[randomIndex]);
+                        btn.disabled = false;
+                        btn.innerText = '随便吃一个！';
+                        btn.style.backgroundColor = ''; 
+                        btn.style.borderColor = '';
+                        cards[lastIndex].classList.remove('highlight');
+                    }, 500);
+                }
+            }, 100);
+        }
+
+        function showFinalResult(luckyOne) {
+            document.getElementById('modal-name').innerText = luckyOne.name;
+            document.getElementById('modal-address').innerText = luckyOne.address;
+            
+            // 确保距离数据存在（如果之前列表渲染时手动计算过，这里就会有）
+            const distNum = luckyOne.distance || 0;
+            let tagText = `命中注定 (${distNum}m)`;
+            const rating = luckyOne.biz_ext && luckyOne.biz_ext.rating ? parseFloat(luckyOne.biz_ext.rating) : 0;
+            
+            if(distNum > 0 && distNum < 200) tagText = "就在楼下，别懒了！";
+            else if(rating > 4.5) tagText = "高分好店，不去后悔！";
+            document.getElementById('modal-tag').innerText = tagText;
+
+            document.getElementById('modal-type').innerText = luckyOne.type.split(';')[0] || currentType;
+
+            // 处理无图逻辑
+            let imgUrl = '';
+            if (luckyOne.photos && luckyOne.photos.length > 0) {
+                imgUrl = luckyOne.photos[0].url;
+            }
+            const imgArea = document.getElementById('modal-img');
+            
+            imgArea.classList.remove('no-photo');
+            imgArea.style.backgroundImage = '';
+
+            if (imgUrl) {
+                imgArea.style.backgroundImage = `url(${imgUrl})`;
+            } else {
+                imgArea.style.backgroundImage = 'none';
+                imgArea.classList.add('no-photo');
+            }
+
+            let navUrl = '';
+            if (luckyOne.location) {
+                navUrl = `https://uri.amap.com/marker?position=${luckyOne.location.lng},${luckyOne.location.lat}&name=${luckyOne.name}`;
+            }
+            document.getElementById('nav-link').href = navUrl;
+
+            document.getElementById('result-modal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('result-modal').style.display = 'none';
+        }
+
+        function retryRandom() {
+            closeModal();
+            startRandom();
+        }
+    </script>
+</body>
+</html>
